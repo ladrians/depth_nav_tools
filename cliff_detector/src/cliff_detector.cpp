@@ -369,6 +369,11 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
   stairs_points_msg_.points.clear();
   pt.y = 0;
 
+  // clean depth image
+  int len = new_depth_msg_.data.size();
+  for(int idx = 0; idx < len; ++idx)
+    new_depth_msg_.data[idx] = 0.;
+
   for(it = stairs_points.begin(); it != stairs_points.end(); ++it)
   {
     // Calculate point in XZ plane -- depth (z)
@@ -386,7 +391,7 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
     if (publish_depth_enable_)
     {
       ROS_ASSERT(row_size * (*it)[Row] + (*it)[Col] < (new_depth_msg_.height * new_depth_msg_.width));
-      new_depth_row[row_size * (*it)[Row] + (*it)[Col]] = 10000U;
+      new_depth_row[row_size * (*it)[Row] + (*it)[Col]] = depth * 1000.; //10000U;
     }
   }
   ROS_DEBUG_STREAM("Stairs points: " << stairs_points.size());
