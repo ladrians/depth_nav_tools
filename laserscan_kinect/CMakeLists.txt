@@ -2,12 +2,12 @@ cmake_minimum_required(VERSION 2.8.3)
 project(laserscan_kinect)
 
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 
 add_compile_options(
   -Wall
   -O3
-  -Werror
+#  -Werror
 )
 
 add_definitions(-DMULTITHREAD=0) # Set to 1 for multithreading

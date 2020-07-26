@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(depth_sensor_pose)
 
 set(CMAKE_BUILD_TYPE Release)
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_FLAGS "-std=c++14 ${CMAKE_CXX_FLAGS}")
 
 add_compile_options(
   -Wall
