@@ -117,7 +117,7 @@ void LaserScanKinect::setScanHeight(const int scan_height) {
   }
   else {
     scan_height_ = 10;
-    ROS_ERROR("Incorrect value of scan height parameter. Set default value: 100.");
+    ROS_ERROR("Incorrect value of scan height parameter. Set default value: 10.");
   }
 }
 
@@ -187,14 +187,14 @@ void LaserScanKinect::calcFieldOfView(const cv::Point2d && left, const cv::Point
 
   ROS_ASSERT(min < 0 && max > 0);
 }
-
+//template<typename T>
 void LaserScanKinect::calcGroundDistancesForImgRows(double vertical_fov) {
   const double alpha = sensor_tilt_angle_ * M_PI / 180.0; // Sensor tilt angle in radians
   const int img_height = cam_model_.fullResolution().height;
 
   ROS_ASSERT(img_height >= 0);
 
-  const int ground_margin_mm = ground_margin_ * 1000;
+  const int ground_margin_mm = ground_margin_ /** 1000*/;
   dist_to_ground_corrected.resize(img_height);
 
   // Coefficients calculations for each row of image
@@ -203,13 +203,13 @@ void LaserScanKinect::calcGroundDistancesForImgRows(double vertical_fov) {
     double delta = vertical_fov * (i - cam_model_.cy() - 0.5) / (static_cast<double>(img_height) - 1);
 
     if ((delta + alpha) > 0) {
-      dist_to_ground_corrected[i] = sensor_mount_height_ * sin(M_PI / 2 - delta) * 1000
+      dist_to_ground_corrected[i] = sensor_mount_height_ * sin(M_PI / 2 - delta) /** 1000*/
                           / cos(M_PI / 2 - delta - alpha);
 
       ROS_ASSERT(dist_to_ground_corrected[i] > 0);
     }
     else {
-      dist_to_ground_corrected[i] = 100 * 1000;
+      dist_to_ground_corrected[i] = 100 /** 1000*/;
     }
 
     dist_to_ground_corrected[i] -= ground_margin_mm;
@@ -237,7 +237,7 @@ void LaserScanKinect::calcScanMsgIndexForImgCols(const sensor_msgs::ImageConstPt
   scan_msg_index_.resize((int)depth_msg->width);
 
   for (size_t u = 0; u < static_cast<size_t>(depth_msg->width); u++) {
-    double th = -atan2((double)(u - cam_model_.cx()) * 0.001f / cam_model_.fx(), 0.001f);
+    double th = -atan2((double)(u - cam_model_.cx()) /** 0.001f*/ / cam_model_.fx(), /*0.001f*/ 1);
     scan_msg_index_[u] = (th - scan_msg_->angle_min) / scan_msg_->angle_increment;
   }
 }

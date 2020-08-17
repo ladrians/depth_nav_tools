@@ -1,4 +1,5 @@
 #include <cliff_detector/cliff_detector_node.h>
+#include <depthimage_to_laserscan/depth_traits.h>
 
 namespace cliff_detector {
 
@@ -45,7 +46,11 @@ void CliffDetector::detectCliff( const sensor_msgs::ImageConstPtr& depth_msg,
   // Check if image encoding is correctly
   if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_16UC1)
   {
-    findCliffInDepthImage(depth_msg);
+    findCliffInDepthImage<uint16_t>(depth_msg);
+  }
+  else if (depth_msg->encoding == sensor_msgs::image_encodings::TYPE_32FC1)
+  {
+    findCliffInDepthImage<float>(depth_msg);
   }
   else
   {
@@ -224,7 +229,7 @@ void CliffDetector::calcGroundDistancesForImgRows([[maybe_unused]] double vertic
   for (unsigned int i = 0; i < img_height; i++) {
     // Angle between ray and optical center
     if ((delta_row_[i] + alpha) > 0) {
-      dist_to_ground_[i] = sensor_mount_height_ * sin(M_PI/2 - delta_row_[i]) * 1000
+      dist_to_ground_[i] = sensor_mount_height_ * sin(M_PI/2 - delta_row_[i]) /** 1000*/
           / cos(M_PI/2 - delta_row_[i] - alpha);
       ROS_ASSERT(dist_to_ground_[i] > 0);
     }
@@ -250,13 +255,14 @@ void CliffDetector::calcTiltCompensationFactorsForImgRows()
   }
 }
 
+template<typename T>
 void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &depth_msg)
 {
   enum Point { Row, Col, Depth };
 
-  const uint16_t* depth_row = reinterpret_cast<const uint16_t*>(&depth_msg->data[0]);
+  const T* depth_row = reinterpret_cast<const T*>(&depth_msg->data[0]);
 
-  const unsigned int row_size = depth_msg->step / sizeof(uint16_t);
+  const unsigned int row_size = depth_msg->step / sizeof(T);
 
   const unsigned int img_height = camera_model_.fullResolution().height;
   const unsigned int img_width = camera_model_.fullResolution().width;
@@ -269,9 +275,9 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
   const unsigned int block_cols_nr = img_width / block_size_;
   const unsigned int block_rows_nr = used_depth_height_ / block_size_;
 
-  const int ground_margin_mm = ground_margin_ * 1000;
-  const unsigned int range_min_mm = range_min_ * 1000;
-  const unsigned int range_max_mm = range_max_ * 1000;
+  const int ground_margin_mm = depthimage_to_laserscan::DepthTraits<T>::toMeters(ground_margin_);//ground_margin_ * 1000;
+  const unsigned int range_min_mm = depthimage_to_laserscan::DepthTraits<T>::toMeters(range_min_);//range_min_ * 1000;
+  const unsigned int range_max_mm = depthimage_to_laserscan::DepthTraits<T>::toMeters(range_max_);//range_max_ * 1000;
 
   // Check if points thresh isn't too big
   if (block_points_thresh_ >= (block_size_ * block_size_ / depth_image_step_col_
@@ -317,7 +323,7 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
           unsigned col = bi * block_size_ + i;
           ROS_ASSERT(row < img_height && col < img_width);
 
-          unsigned d = depth_row[row_size * row + col];
+          T d = depth_row[row_size * row + col];
 
           // Check if distance to point is greater than distance to ground plane
           if (d > (dist_to_ground_[row] + ground_margin_mm) &&
@@ -361,7 +367,7 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
     new_depth_msg_ = *depth_msg;
   }
 
-  uint16_t* new_depth_row = reinterpret_cast<uint16_t*>(&new_depth_msg_.data[0]);
+  T* new_depth_row = reinterpret_cast<T*>(&new_depth_msg_.data[0]);
 
   // Set header and size of points list in message
   stairs_points_msg_.header = depth_msg->header;
@@ -391,7 +397,7 @@ void CliffDetector::findCliffInDepthImage(const sensor_msgs::ImageConstPtr &dept
     if (publish_depth_enable_)
     {
       ROS_ASSERT(row_size * (*it)[Row] + (*it)[Col] < (new_depth_msg_.height * new_depth_msg_.width));
-      new_depth_row[row_size * (*it)[Row] + (*it)[Col]] = depth * 1000.; //10000U;
+      new_depth_row[row_size * (*it)[Row] + (*it)[Col]] = depthimage_to_laserscan::DepthTraits<T>::toMeters(depth);// depth * 1000.; //10000U;
     }
   }
   ROS_DEBUG_STREAM("Stairs points: " << stairs_points.size());
